@@ -11,27 +11,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.validators import URLValidator
 from django.core.validators import validate_email as django_validate_email
 from django.utils import timezone
-
-PHONE_MAX_LEN = 15
-ZIPCODE_MAX_LEN = 15
-GROUPSIZE_MAX_LEN = 15
-
-SESSION_MIN_NUMBER = 1
-SESSION_MAX_NUMBER = 5
-
-SKILL_LEVEL_MIN = 1
-SKILL_LEVEL_MAX = 5
-
-FORM_LEVEL_MIN = 1
-FORM_LEVEL_MAX = 3
-
-EMAIL_MAX_LEN = 254
-NAME_MAX_LEN = 120
-SHORT_TEXT_MAX_LEN = 80
-MEDIUM_TEXT_MAX_LEN = 255
-LONG_TEXT_MAX_LEN = 2000
-SKILL_NAME_MAX_LEN = 50
-STATE_CODE_MAX_LEN = 10
+import api.constants as c
 
 def _coerce_str(
     value: object,
@@ -64,7 +44,7 @@ def parse_email(value: object, field: str, *, required: bool = False) -> str | N
         value,
         field,
         required=required,
-        max_len=EMAIL_MAX_LEN,
+        max_len=c.EMAIL_MAX_LEN,
     )
     if normalized is None:
         return None
@@ -79,7 +59,7 @@ def parse_phone(value: object, field: str, *, required: bool = False) -> str | N
         value,
         field,
         required=required,
-        max_len=PHONE_MAX_LEN,
+        max_len=c.PHONE_MAX_LEN,
     )
     if normalized is None:
         return None
@@ -87,8 +67,8 @@ def parse_phone(value: object, field: str, *, required: bool = False) -> str | N
     digits = normalized[1:] if normalized.startswith('+') else normalized
     if not digits.isdigit():
         raise DjangoValidationError(f'{field} must contain digits (optional leading +)')
-    if len(digits) < 8 or len(digits) > PHONE_MAX_LEN:
-        raise DjangoValidationError(f'{field} must contain 8-{PHONE_MAX_LEN} digits')
+    if len(digits) < 8 or len(digits) > c.PHONE_MAX_LEN:
+        raise DjangoValidationError(f'{field} must contain 8-{c.PHONE_MAX_LEN} digits')
     return normalized
 
 def validate_phone(value: str | None) -> None:
@@ -107,8 +87,8 @@ class Session(models.Model):
     )
     sessionnumber = models.IntegerField(
         validators=[
-            MinValueValidator(SESSION_MIN_NUMBER),
-            MaxValueValidator(SESSION_MAX_NUMBER),
+            MinValueValidator(c.SESSION_MIN_NUMBER),
+            MaxValueValidator(c.SESSION_MAX_NUMBER),
         ],
     )
     starttime = models.DateTimeField(
@@ -137,10 +117,10 @@ class Rider(models.Model):
         editable=False,
     )
     firstname = models.TextField(
-        validators=[MaxLengthValidator(NAME_MAX_LEN)],
+        validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
     )
     lastname = models.TextField(
-        validators=[MaxLengthValidator(NAME_MAX_LEN)],
+        validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
     )
     isquickstart = models.BooleanField(
         null=True,
@@ -166,18 +146,18 @@ class Caregiver(models.Model):
         editable=False,
     )
     firstname = models.TextField(
-        validators=[MaxLengthValidator(NAME_MAX_LEN)],
+        validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
     )
     lastname = models.TextField(
-        validators=[MaxLengthValidator(NAME_MAX_LEN)],
+        validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
     )
     phone = models.TextField(
-        validators=[MaxLengthValidator(PHONE_MAX_LEN)],
+        validators=[MaxLengthValidator(c.PHONE_MAX_LEN)],
         null=True,
         blank=True,
     )
     email = models.TextField(
-        validators=[MaxLengthValidator(EMAIL_MAX_LEN)],
+        validators=[MaxLengthValidator(c.EMAIL_MAX_LEN)],
         null=True,
         blank=True,
     )
@@ -216,18 +196,18 @@ class Skills(models.Model):
         editable=False,
     )
     skillname = models.TextField(
-        validators=[MaxLengthValidator(SKILL_NAME_MAX_LEN)],
+        validators=[MaxLengthValidator(c.SKILL_NAME_MAX_LEN)],
     )
 
     level = models.IntegerField(
         validators=[
-            MinValueValidator(SKILL_LEVEL_MIN),
-            MaxValueValidator(SKILL_LEVEL_MAX),
+            MinValueValidator(c.SKILL_LEVEL_MIN),
+            MaxValueValidator(c.SKILL_LEVEL_MAX),
         ]
     )
 
     comments = models.TextField(
-        validators=[MaxLengthValidator(LONG_TEXT_MAX_LEN)],
+        validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
         null=True,
         blank=True,
     )
@@ -255,14 +235,14 @@ class DailyForm(models.Model):
         db_column='session_id',
     )
     comments = models.TextField(
-        validators=[MaxLengthValidator(LONG_TEXT_MAX_LEN)],
+        validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
         null=True,
         blank=True,
     )
     level = models.IntegerField(
         validators=[
-            MinValueValidator(FORM_LEVEL_MIN),
-            MaxValueValidator(FORM_LEVEL_MAX),
+            MinValueValidator(c.FORM_LEVEL_MIN),
+            MaxValueValidator(c.FORM_LEVEL_MAX),
         ],
         null=True,
         blank=True,
@@ -311,14 +291,14 @@ class FinalForm(models.Model):
         db_column='session_id',
     )
     comments = models.TextField(
-        validators=[MaxLengthValidator(LONG_TEXT_MAX_LEN)],
+        validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
         null=True,
         blank=True,
     )
     level = models.IntegerField(
         validators=[
-            MinValueValidator(FORM_LEVEL_MIN),
-            MaxValueValidator(FORM_LEVEL_MAX),
+            MinValueValidator(c.FORM_LEVEL_MIN),
+            MaxValueValidator(c.FORM_LEVEL_MAX),
         ],
         null=True,
         blank=True,
