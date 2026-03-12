@@ -99,35 +99,6 @@ def validate_email(value: str | None) -> None:
 
 # Create your models here.
 
-class Rider(models.Model):
-    id = models.UUIDField(
-        primary_key=True, 
-        default=uuid.uuid4, 
-        editable=False,
-    )
-    firstname = models.TextField(
-        validators=[MaxLengthValidator(NAME_MAX_LEN)],
-    )
-    lastname = models.TextField(
-        validators=[MaxLengthValidator(NAME_MAX_LEN)],
-    )
-    isquickstart = models.BooleanField(
-        null=True,
-        blank=True,
-        )
-
-    # foreign keys
-    session_id = models.ForeignKey(
-        Session,
-        on_delete=models.DO_NOTHING,
-        null=True,
-        blank=True,
-        db_column='session_id',
-    )
-
-    class Meta:
-        db_table = 'riders'
-
 class Session(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -158,6 +129,35 @@ class Session(models.Model):
         super().clean()
         if self.endttime and self.starttime and self.endttime < self.starttime:
             raise DjangoValidationError('endttime must be after starttime')
+
+class Rider(models.Model):
+    id = models.UUIDField(
+        primary_key=True, 
+        default=uuid.uuid4, 
+        editable=False,
+    )
+    firstname = models.TextField(
+        validators=[MaxLengthValidator(NAME_MAX_LEN)],
+    )
+    lastname = models.TextField(
+        validators=[MaxLengthValidator(NAME_MAX_LEN)],
+    )
+    isquickstart = models.BooleanField(
+        null=True,
+        blank=True,
+        )
+
+    # foreign keys
+    session_id = models.ForeignKey(
+        Session,
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        db_column='session_id',
+    )
+
+    class Meta:
+        db_table = 'riders'
 
 class Caregiver(models.Model):
     id = models.UUIDField(
