@@ -152,12 +152,12 @@ class Caregiver(models.Model):
         validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
     )
     phone = models.TextField(
-        validators=[MaxLengthValidator(c.PHONE_MAX_LEN)],
+        validators=[validate_phone],
         null=True,
         blank=True,
     )
     email = models.TextField(
-        validators=[MaxLengthValidator(c.EMAIL_MAX_LEN)],
+        validators=[validate_email],
         null=True,
         blank=True,
     )
@@ -182,6 +182,15 @@ class Skill(models.Model):
     skillname = models.TextField(
         validators=[MaxLengthValidator(c.SKILL_NAME_MAX_LEN)],
     )
+
+    # formlevel = models.IntegerField(
+    #     validators=[
+    #         MinValueValidator(c.SKILL_LEVEL_MIN),
+    #         MaxValueValidator(c.SKILL_LEVEL_MAX),
+    #     ],
+    #     null=False,
+    #     blank=False,
+    # )
 
     def __str__(self) -> str:
         return f'{self.skillname} (Level {self.level})' if self.level else self.skillname
