@@ -12,3 +12,4 @@ class SkillSearchForm(forms.Form):
     search = forms.CharField(max_length=c.SEARCH_MAX_LEN, required=False)
     name = forms.CharField(max_length=c.SKILL_NAME_MAX_LEN, required=False)
     level = forms.IntegerField(min_value=c.SKILL_LEVEL_MIN, max_value=c.SKILL_LEVEL_MAX, required=False)
+

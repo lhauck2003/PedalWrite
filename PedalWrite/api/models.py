@@ -1,6 +1,6 @@
-from django.db import models
 from __future__ import annotations
 
+from django.db import models
 import uuid
 from decimal import Decimal
 from urllib.parse import urlparse
@@ -82,7 +82,7 @@ def validate_email(value: str | None) -> None:
 class Session(models.Model):
     id = models.UUIDField(
         primary_key=True,
-        defaul=uuid.uuid4,
+        default=uuid.uuid4,
         editable=False,
     )
     sessionnumber = models.IntegerField(
@@ -189,7 +189,7 @@ class RiderCaregiver(models.Model):
     class Meta:
         db_table = 'rider_caregivers'
 
-class Skills(models.Model):
+class Skill(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -263,7 +263,7 @@ class DailyFormSkill(models.Model):
         db_column='dailyform_id',
     )
     skill_id = models.ForeignKey(
-        Skills,
+        Skill,
         on_delete=models.DO_NOTHING,
         db_column='skill_id',
     )
@@ -319,7 +319,7 @@ class FinalFormSkill(models.Model):
         db_column='finalform_id',
     )
     skill_id = models.ForeignKey(
-        Skills,
+        Skill,
         on_delete=models.DO_NOTHING,
         db_column='skill_id',
     )
