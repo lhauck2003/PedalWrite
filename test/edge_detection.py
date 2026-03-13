@@ -2,9 +2,12 @@ import cv2
 import numpy as np
 import pytesseract
 
-def detect_page_borders(image_path):
-    image = cv2.imread(image_path)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) # 1. Grayscale
+def detect_page_borders(image):
+    #image = cv2.imread(image_path)
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)    # 2. Blur
     edged = cv2.Canny(blurred, 127, 200)            # 3. Edge detection
 
@@ -67,19 +70,19 @@ def four_point_transform(image, pts):
     return warped
 
 
-def htr(image_path, shape):
-    image = cv2.imread(image_path)
+def htr(image, shape):
+    #image = cv2.imread(image_path)
 
     pts = shape.reshape(4, 2)
     warped = four_point_transform(image, pts)
 
-    gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    #gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+    #blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
 
     # improve OCR quality
     _, thresh = cv2.threshold(
-        blurred, 127, 255, cv2.THRESH_BINARY
+        warped, 127, 255, cv2.THRESH_BINARY
     )
 
     #cv2.imshow("Isolated Form", thresh)
