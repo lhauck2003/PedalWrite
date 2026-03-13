@@ -165,29 +165,13 @@ class Caregiver(models.Model):
         null=True,
         blank=True,
     )
+    riders = models.ManyToManyField(
+        Rider,
+    )
 
     class Meta:
         db_table = 'caregivers'
 
-class RiderCaregiver(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-    )
-    rider_id = models.ForeignKey(
-        Rider,
-        on_delete=models.DO_NOTHING,
-        db_column='rider_id',
-    )
-    caregiver_id = models.ForeignKey(
-        Caregiver,
-        on_delete=models.DO_NOTHING,
-        db_column='caregiver_id',
-    )
-
-    class Meta:
-        db_table = 'rider_caregivers'
 
 class Skill(models.Model):
     id = models.UUIDField(
@@ -199,18 +183,8 @@ class Skill(models.Model):
         validators=[MaxLengthValidator(c.SKILL_NAME_MAX_LEN)],
     )
 
-    level = models.IntegerField(
-        validators=[
-            MinValueValidator(c.SKILL_LEVEL_MIN),
-            MaxValueValidator(c.SKILL_LEVEL_MAX),
-        ]
-    )
-
-    comments = models.TextField(
-        validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
-        null=True,
-        blank=True,
-    )
+    def __str__(self) -> str:
+        return f'{self.skillname} (Level {self.level})' if self.level else self.skillname
 
     class Meta:
         db_table = 'skills'
@@ -221,7 +195,9 @@ class DailyForm(models.Model):
         default=uuid.uuid4,
         editable=False,
     )
-    date = models.DateField()
+    date = models.DateField(
+        default=timezone.now
+    )
     rider_id = models.ForeignKey(
         Rider,
         on_delete=models.DO_NOTHING,
@@ -247,29 +223,49 @@ class DailyForm(models.Model):
         null=True,
         blank=True,
     )
+    skills = models.ManyToManyField(
+        Skill,
+        through='DailyFormSkill',
+    )
 
     class Meta:
         db_table = 'daily_forms'
 
 class DailyFormSkill(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-    )
     dailyform_id = models.ForeignKey(
         DailyForm,
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         db_column='dailyform_id',
     )
     skill_id = models.ForeignKey(
         Skill,
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         db_column='skill_id',
+    )
+
+    # unique to each skill-form relationship
+    level = models.IntegerField(
+        validators=[
+            MinValueValidator(c.SKILL_LEVEL_MIN),
+            MaxValueValidator(c.SKILL_LEVEL_MAX),
+
+        ],
+        null=True,
+        blank=True,
+        editable=True,
+    )
+
+    comments = models.TextField(
+        validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
+        null=True,
+        blank=True,
+        editable=True,
     )
 
     class Meta:
         db_table = 'dailyform_skills'
+        unique_together = ('dailyform_id', 'skill_id')
+
 
 class FinalForm(models.Model):
     id = models.UUIDField(
@@ -303,26 +299,46 @@ class FinalForm(models.Model):
         null=True,
         blank=True,
     )
+    skills = models.ManyToManyField(
+        Skill,
+        through='FinalFormSkill',
+    )
 
     class Meta:
         db_table = 'final_forms'
 
+
 class FinalFormSkill(models.Model):
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-    )
-    finalform_id = models.ForeignKey(
+    dailyform_id = models.ForeignKey(
         FinalForm,
-        on_delete=models.DO_NOTHING,
-        db_column='finalform_id',
+        on_delete=models.CASCADE,
+        db_column='dailyform_id',
     )
     skill_id = models.ForeignKey(
         Skill,
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         db_column='skill_id',
     )
 
+    # unique to each skill-form relationship
+    level = models.IntegerField(
+        validators=[
+            MinValueValidator(c.SKILL_LEVEL_MIN),
+            MaxValueValidator(c.SKILL_LEVEL_MAX),
+
+        ],
+        null=True,
+        blank=True,
+        editable=True,
+    )
+
+    comments = models.TextField(
+        validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
+        null=True,
+        blank=True,
+        editable=True,
+    )
+
     class Meta:
-        db_table = 'finalform_skills'
+        db_table = 'dailyform_skills'
+        unique_together = ('dailyform_id', 'skill_id')
