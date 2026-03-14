@@ -1,6 +1,6 @@
 from django import forms
 import api.constants as c
-from api.models import DailyForm, FinalForm
+from api.models import DailyForm, FinalForm, DailyFormSkill, FinalFormSkill
 
 class RiderSearchForm(forms.Form):
     search = forms.CharField(max_length=c.SEARCH_MAX_LEN, required=False)
@@ -15,36 +15,23 @@ class SkillSearchForm(forms.Form):
     level = forms.IntegerField(min_value=c.SKILL_LEVEL_MIN, max_value=c.SKILL_LEVEL_MAX, required=False)
     
 
-# Model Forms
+# Formsets
 
-class DailyFormForm(forms.ModelForm):
-    class Meta:
-        model = DailyForm
-        fields = ['skills', 'firstname', 'lastname', 'session', 'leader']
-        widgets ={
-            'skills' : forms.CheckboxSelectMultiple(
-                choices=[(skill.id, skill.skillname) for skill in FinalForm.objects.all()]
-            ),
-            'session' : forms.CheckboxInput(
-                choices=[(session.id, session.sessionnumber) for session in FinalForm.objects.all()]
-            ),
-            'leader' : forms.CheckboxInput(
-                choices=[(leader.id, leader.firstname + " " + leader.lastname) for leader in FinalForm.objects.all()]
-            ),
-        }
+DailyFormSkillSet = forms.inlineformset_factory(
+    DailyForm,
+    DailyFormSkill,
+    fk_name="dailyform_id",
+    fields=("__all__"),
+    extra=3,
+    can_delete=True,
+)
 
-class FinalFormForm(forms.ModelForm):
-    class Meta:
-        model = FinalForm
-        fields = ['skills', 'firstname', 'lastname', 'session', 'leader', 'level']
-        widgets ={
-            'skills' : forms.CheckboxSelectMultiple(
-                choices=[(skill.id, skill.skillname) for skill in FinalForm.objects.all()],
-            ),
-            'session' : forms.CheckboxInput(
-                choices=[(session.id, session.sessionnumber) for session in FinalForm.objects.all()],
-            ),
-            'leader' : forms.CheckboxInput(
-                choices=[(leader.id, leader.firstname + " " + leader.lastname) for leader in FinalForm.objects.all()],
-            ),
-        }
+FinalFormSkillSet = forms.inlineformset_factory(
+    FinalForm,
+    FinalFormSkill,
+    fk_name="finalform_id",
+    fields=("__all__"),
+    extra=3,
+    can_delete=True,
+)
+
