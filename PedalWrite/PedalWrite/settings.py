@@ -11,15 +11,20 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 def _require_env(name: str) -> str:
     value = os.getenv(name)
+    print(value)
     if not value:
         raise RuntimeError(f"{name} environment variable is required")
-
+    return value
 
 
 # Quick-start development settings - unsuitable for production

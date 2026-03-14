@@ -1,6 +1,7 @@
 from django import forms
 import api.constants as c
-from api.models import DailyForm, FinalForm, DailyFormSkill, FinalFormSkill
+from api.models import DailyForm, FinalForm, DailyFormSkill, FinalFormSkill, Caregiver, CaregiverRider
+from api.models import validate_email, validate_phone
 
 class RiderSearchForm(forms.Form):
     search = forms.CharField(max_length=c.SEARCH_MAX_LEN, required=False)
@@ -17,21 +18,28 @@ class SkillSearchForm(forms.Form):
 
 # Formsets
 
-DailyFormSkillSet = forms.inlineformset_factory(
+DailyFormSkilFormlSet = forms.inlineformset_factory(
     DailyForm,
     DailyFormSkill,
-    fk_name="dailyform_id",
     fields=("__all__"),
     extra=3,
     can_delete=True,
 )
 
-FinalFormSkillSet = forms.inlineformset_factory(
+FinalFormSkillFormSet = forms.inlineformset_factory(
     FinalForm,
     FinalFormSkill,
-    fk_name="finalform_id",
     fields=("__all__"),
     extra=3,
     can_delete=True,
 )
 
+CaregiverRiderFormSet = forms.inlineformset_factory(
+    Caregiver,
+    CaregiverRider,
+    fields=("__all__"),
+    extra=3,
+    can_delete=True,
+)
+
+# forms.ModelForms

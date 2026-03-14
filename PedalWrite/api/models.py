@@ -96,7 +96,7 @@ class Session(models.Model):
         null=True,
         blank=True,
     )
-    endttime = models.DateTimeField(
+    endtime = models.DateTimeField(
         default=timezone.now,
         null=True,
         blank=True,
@@ -105,9 +105,12 @@ class Session(models.Model):
     class Meta:
         db_table = 'sessions'
     
+    def __str__(self) -> str:
+        return f"Session {self.sessionnumber}"
+    
     def clean(self) -> None:
         super().clean()
-        if self.endttime and self.starttime and self.endttime < self.starttime:
+        if self.endtime and self.starttime and self.endtime < self.starttime:
             raise DjangoValidationError('endttime must be after starttime')
 
 class Rider(models.Model):
@@ -115,6 +118,7 @@ class Rider(models.Model):
         primary_key=True, 
         default=uuid.uuid4, 
         editable=False,
+        db_column='rider_id',
     )
     firstname = models.TextField(
         validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
@@ -128,7 +132,7 @@ class Rider(models.Model):
         )
 
     # foreign keys
-    session_id = models.ForeignKey(
+    session = models.ForeignKey(
         Session,
         on_delete=models.DO_NOTHING,
         null=True,
@@ -136,14 +140,42 @@ class Rider(models.Model):
         db_column='session_id',
     )
 
+    caregivers = models.ManyToManyField(
+        "Caregiver",
+        through="CaregiverRider",
+        related_name="riders"
+    )
+
     class Meta:
         db_table = 'riders'
+
+    def __str__(self) -> str:
+        return f"Rider: {self.firstname} {self.lastname}"
 
 class Caregiver(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False,
+        db_column='caregiver_id',
+    )
+
+    class Meta:
+        db_table = 'caregivers'
+
+    def __str__(self):
+        return f"Caregiver {self.id}"
+
+class CaregiverRider(models.Model):
+    caregiver = models.ForeignKey(
+        Caregiver,
+        on_delete=models.CASCADE,
+        db_column='caregiver_id',
+    )
+    rider = models.ForeignKey(
+        Rider,
+        on_delete=models.CASCADE,
+        db_column='rider_id',
     )
     firstname = models.TextField(
         validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
@@ -165,13 +197,13 @@ class Caregiver(models.Model):
         null=True,
         blank=True,
     )
-    riders = models.ManyToManyField(
-        Rider,
-    )
 
     class Meta:
-        db_table = 'caregivers'
+        db_table = 'caregiver_riders'
+        unique_together=('caregiver', 'rider')
 
+    def __str__(self):
+        return f"Caregiver: {self.firstname} {self.lastname}"
 
 class Skill(models.Model):
     id = models.UUIDField(
@@ -183,17 +215,18 @@ class Skill(models.Model):
         validators=[MaxLengthValidator(c.SKILL_NAME_MAX_LEN)],
     )
 
-    # formlevel = models.IntegerField(
-    #     validators=[
-    #         MinValueValidator(c.SKILL_LEVEL_MIN),
-    #         MaxValueValidator(c.SKILL_LEVEL_MAX),
-    #     ],
-    #     null=False,
-    #     blank=False,
-    # )
+    formlevel = models.IntegerField(
+        validators=[
+            MinValueValidator(c.SKILL_LEVEL_MIN),
+            MaxValueValidator(c.SKILL_LEVEL_MAX),
+        ],
+        null=False,
+        blank=False,
+        default=0,
+    )
 
     def __str__(self) -> str:
-        return f'{self.skillname} (Level {self.level})' if self.level else self.skillname
+        return f"{self.skillname} (Level {self.formlevel})" if self.formlevel else f"{self.skillname}"
 
     class Meta:
         db_table = 'skills'
@@ -207,12 +240,12 @@ class DailyForm(models.Model):
     date = models.DateField(
         default=timezone.now
     )
-    rider_id = models.ForeignKey(
+    rider = models.ForeignKey(
         Rider,
         on_delete=models.DO_NOTHING,
         db_column='rider_id',
     )
-    session_id = models.ForeignKey(
+    session = models.ForeignKey(
         Session,
         on_delete=models.DO_NOTHING,
         null=True,
@@ -234,20 +267,27 @@ class DailyForm(models.Model):
     )
     skills = models.ManyToManyField(
         Skill,
-        through='DailyFormSkill',
+        through="DailyFormSkill",
+        related_name="daily_forms"
     )
 
     class Meta:
         db_table = 'daily_forms'
 
+    def __str__(self):
+        return f"Daily Form for Rider: {self.rider.firstname} in Session: {self.session.sessionnumber}" if self.session and self.rider else "Blank Daily Form"
+
 class DailyFormSkill(models.Model):
-    dailyform_id = models.ForeignKey(
+    dailyform = models.ForeignKey(
         DailyForm,
         on_delete=models.CASCADE,
-        db_column='dailyform_id',
+        db_column="dailyform_id",
+        related_name="skill_links",
     )
-    skill_id = models.ForeignKey(
+
+    skill = models.ForeignKey(
         Skill,
+        related_name="dailyform_links",
         on_delete=models.CASCADE,
         db_column='skill_id',
     )
@@ -273,7 +313,10 @@ class DailyFormSkill(models.Model):
 
     class Meta:
         db_table = 'dailyform_skills'
-        unique_together = ('dailyform_id', 'skill_id')
+        unique_together = ('dailyform', 'skill')
+    
+    def __str__(self):
+        return f"{self.skill} Level {self.level}"
 
 
 class FinalForm(models.Model):
@@ -283,17 +326,19 @@ class FinalForm(models.Model):
         editable=False,
     )
     date = models.DateField()
-    rider_id = models.ForeignKey(
+    rider = models.ForeignKey(
         Rider,
         on_delete=models.DO_NOTHING,
         db_column='rider_id',
+        related_name="daily_forms",
     )
-    session_id = models.ForeignKey(
+    session = models.ForeignKey(
         Session,
         on_delete=models.DO_NOTHING,
         null=True,
         blank=True,
         db_column='session_id',
+        related_name="daily_forms"
     )
     comments = models.TextField(
         validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
@@ -308,22 +353,27 @@ class FinalForm(models.Model):
         null=True,
         blank=True,
     )
+
     skills = models.ManyToManyField(
         Skill,
-        through='FinalFormSkill',
+        through="FinalFormSkill",
+        related_name="final_forms"
     )
 
     class Meta:
         db_table = 'final_forms'
 
+    def __str__(self):
+        return f"Final Form for Rider: {self.rider.firstname} in Session: {self.session.sessionnumber}" if self.session and self.rider else "Blank Daily Form"
+
 
 class FinalFormSkill(models.Model):
-    dailyform_id = models.ForeignKey(
+    finalform = models.ForeignKey(
         FinalForm,
         on_delete=models.CASCADE,
-        db_column='dailyform_id',
+        db_column='finalform_id',
     )
-    skill_id = models.ForeignKey(
+    skill = models.ForeignKey(
         Skill,
         on_delete=models.CASCADE,
         db_column='skill_id',
@@ -349,5 +399,8 @@ class FinalFormSkill(models.Model):
     )
 
     class Meta:
-        db_table = 'dailyform_skills'
-        unique_together = ('dailyform_id', 'skill_id')
+        db_table = 'finalform_skills'
+        unique_together = ('finalform', 'skill')
+
+    def __str__(self):
+        return f"{self.skill} Level {self.level}"
