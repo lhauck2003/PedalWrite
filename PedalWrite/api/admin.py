@@ -6,10 +6,6 @@ from api.models import Session, Skill, Rider, DailyForm, FinalForm, DailyFormSki
 admin.site.register(Session)
 admin.site.register(Skill)
 admin.site.register(Rider)
-#admin.site.register(DailyForm)
-#admin.site.register(FinalForm)
-#admin.site.register(DailyFormSkill)
-#admin.site.register(FinalFormSkill)
 
 class DailyFormSkillInline(admin.TabularInline):
     model = DailyFormSkill
