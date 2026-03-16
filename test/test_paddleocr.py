@@ -30,31 +30,36 @@ def parse_image(img, auto_orient=False, auto_unwarp=False, textline_orientation=
     return f"Successfully Parsed Image {img}"
 
 def main():
-    print("WARNING: Uses significant amount of application memory")
-
-    while(input("Enter \'c\' to continue: ") not in 'c'):
-        continue
-
     parser = argparse.ArgumentParser(
         description = "Image to Text Recognition Tool"
     )
 
     parser.add_argument(
-        "--image",  
+        "--image", 
+        nargs="+", 
+        type=str,
         dest="img", 
-        default = DEFAULT_TEST_IMAGE
+        default = DEFAULT_TEST_IMAGE,
+        help="image(s) to parse"
     )
+
     parser.set_defaults(img=DEFAULT_TEST_IMAGE)
     
     args = parser.parse_args()
 
-    img = args.img
+    print("WARNING: Uses significant amount of application memory")
+
+    while(input("Enter \'c\' to continue: ") not in 'c'):
+        continue
+
+    images = args.img
     
-    try:
-        result = parse_image(img)
-    except Exception as e:
-        result = f"Exception {e} caught during parse_image"
-    
+    for img in images:
+        try:
+            result = parse_image(img)
+        except Exception as e:
+            result = f"Exception {e} caught during parse_image"
+        
         print(result)
 
 if __name__=="__main__":
