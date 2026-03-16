@@ -208,5 +208,6 @@ __marimo__/
 
 #sample forms
 sample\ forms/
+output/
 
 .DS_Store
