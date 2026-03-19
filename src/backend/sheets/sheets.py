@@ -1,204 +1,131 @@
-import google.auth
+# sheets.py
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from google.oauth2 import service_account
+from typing import List, Optional
 
-# Google Sheets
+# ------------------------------
+# CONFIGURATION
+# ------------------------------
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-def get_spreadsheet_creds():
-  creds, _ = google.auth.default(
-    scopes=["https://www.googleapis.com/auth/spreadsheets"]
-  )
-
-def create_spreadsheet(title):
-  """
-  Creates the Sheet the user has access to.
-  Load pre-authorized user credentials from the environment.
-  TODO(developer) - See https://developers.google.com/identity
-  for guides on implementing OAuth2 for the application.
-  """
-  creds = get_spreadsheet_creds()
-
-      # get create spreadsheet authorized api key
-
-  # pylint: disable=maybe-no-member
-  try:
-    service = build("sheets", "v4", credentials=creds)
-    spreadsheet = {"properties": {"title": title}}
-    spreadsheet = (
-        service.spreadsheets()
-        .create(body=spreadsheet, fields="spreadsheetId")
-        .execute()
+def init_service(service_account_file: str):
+    """Initialize Google Sheets API service."""
+    creds = service_account.Credentials.from_service_account_file(
+        service_account_file, scopes=SCOPES
     )
-    print(f"Spreadsheet ID: {(spreadsheet.get('spreadsheetId'))}")
-    return spreadsheet.get("spreadsheetId")
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
+    return build("sheets", "v4", credentials=creds)
 
-def get_values(spreadsheet_id, range_name):
-  """
-  Creates the batch_update the user has access to.
-  Load pre-authorized user credentials from the environment.
-  TODO(developer) - See https://developers.google.com/identity
-  for guides on implementing OAuth2 for the application.
-  """
 
-      # get read authorized api key
+# ------------------------------
+# SHEETS CLIENT CLASS
+# ------------------------------
+class SheetsClient:
+    def __init__(self, service):
+        self.service = service
 
-  creds = get_spreadsheet_creds()
-  # pylint: disable=maybe-no-member
-  try:
-    service = build("sheets", "v4", credentials=creds)
+    # --------------------------
+    # Create spreadsheet
+    # --------------------------
+    def create_spreadsheet(self, title: str) -> str:
+        spreadsheet = {"properties": {"title": title}}
+        try:
+            sheet = (
+                self.service.spreadsheets()
+                .create(body=spreadsheet, fields="spreadsheetId")
+                .execute()
+            )
+            return sheet.get("spreadsheetId")
+        except HttpError as e:
+            print(f"Error creating spreadsheet: {e}")
+            raise
 
-    result = (
-        service.spreadsheets()
-        .values()
-        .get(spreadsheetId=spreadsheet_id, range=range_name)
-        .execute()
-    )
-    rows = result.get("values", [])
-    print(f"{len(rows)} rows retrieved")
-    return result
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
+    # --------------------------
+    # Read values
+    # --------------------------
+    def get_values(self, spreadsheet_id: str, range_name: str):
+        try:
+            result = (
+                self.service.spreadsheets()
+                .values()
+                .get(spreadsheetId=spreadsheet_id, range=range_name)
+                .execute()
+            )
+            return result.get("values", [])
+        except HttpError as e:
+            print(f"Error reading values: {e}")
+            raise
 
-def batch_get_values(spreadsheet_id, _range_names):
-  """
-  Creates the batch_update the user has access to.
-  Load pre-authorized user credentials from the environment.
-  TODO(developer) - See https://developers.google.com/identity
-  for guides on implementing OAuth2 for the application.
-  """
-  creds = get_spreadsheet_creds()
+    def batch_get_values(self, spreadsheet_id: str, ranges: List[str]):
+        try:
+            result = (
+                self.service.spreadsheets()
+                .values()
+                .batchGet(spreadsheetId=spreadsheet_id, ranges=ranges)
+                .execute()
+            )
+            return result.get("valueRanges", [])
+        except HttpError as e:
+            print(f"Error batch reading values: {e}")
+            raise
 
-  # pylint: disable=maybe-no-member
-  try:
-    service = build("sheets", "v4", credentials=creds)
-    range_names = [
-        # Range names ...
-    ]
-    result = (
-        service.spreadsheets()
-        .values()
-        .batchGet(spreadsheetId=spreadsheet_id, ranges=range_names)
-        .execute()
-    )
-    ranges = result.get("valueRanges", [])
-    print(f"{len(ranges)} ranges retrieved")
-    return result
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
-  
-def append_values(spreadsheet_id, range_name, value_input_option, _values):
-  """
-  Creates the batch_update the user has access to.
-  Load pre-authorized user credentials from the environment.
-  TODO(developer) - See https://developers.google.com/identity
-  for guides on implementing OAuth2 for the application.
-  """
+    # --------------------------
+    # Write values
+    # --------------------------
+    def update_values(
+        self, spreadsheet_id: str, range_name: str, values: List[List], value_input_option="RAW"
+    ):
+        body = {"values": values}
+        try:
+            result = (
+                self.service.spreadsheets()
+                .values()
+                .update(
+                    spreadsheetId=spreadsheet_id,
+                    range=range_name,
+                    valueInputOption=value_input_option,
+                    body=body,
+                )
+                .execute()
+            )
+            return result
+        except HttpError as e:
+            print(f"Error updating values: {e}")
+            raise
 
-  creds = get_spreadsheet_creds()
-  # pylint: disable=maybe-no-member
-  try:
-    service = build("sheets", "v4", credentials=creds)
+    def batch_update_values(
+        self, spreadsheet_id: str, data: List[dict], value_input_option="RAW"
+    ):
+        body = {"valueInputOption": value_input_option, "data": data}
+        try:
+            result = (
+                self.service.spreadsheets()
+                .values()
+                .batchUpdate(spreadsheetId=spreadsheet_id, body=body)
+                .execute()
+            )
+            return result
+        except HttpError as e:
+            print(f"Error batch updating values: {e}")
+            raise
 
-    values = [
-        [
-            # Cell values ...
-        ],
-        # Additional rows ...
-    ]
-    body = {"values": values}
-    result = (
-        service.spreadsheets()
-        .values()
-        .append(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption=value_input_option,
-            body=body,
-        )
-        .execute()
-    )
-    print(f"{(result.get('updates').get('updatedCells'))} cells appended.")
-    return result
-
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
-
-def update_values(spreadsheet_id, range_name, value_input_option, _values):
-  """
-  Creates the batch_update the user has access to.
-  Load pre-authorized user credentials from the environment.
-  TODO(developer) - See https://developers.google.com/identity
-  for guides on implementing OAuth2 for the application.
-  """
-
-  creds, = get_spreadsheet_creds()
-  # pylint: disable=maybe-no-member
-  try:
-    service = build("sheets", "v4", credentials=creds)
-    values = [
-        [
-            # Cell values ...
-        ],
-        # Additional rows ...
-    ]
-    body = {"values": values}
-    result = (
-        service.spreadsheets()
-        .values()
-        .update(
-            spreadsheetId=spreadsheet_id,
-            range=range_name,
-            valueInputOption=value_input_option,
-            body=body,
-        )
-        .execute()
-    )
-    print(f"{result.get('updatedCells')} cells updated.")
-    return result
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
-
-def batch_update_values(
-    spreadsheet_id, range_name, value_input_option, _values
-):
-  """
-  Creates the batch_update the user has access to.
-  Load pre-authorized user credentials from the environment.
-  TODO(developer) - See https://developers.google.com/identity
-  for guides on implementing OAuth2 for the application.
-  """
-  
-  creds = get_spreadsheet_creds()
-  # pylint: disable=maybe-no-member
-  try:
-    service = build("sheets", "v4", credentials=creds)
-
-    values = [
-        [
-            # Cell values ...
-        ],
-        # Additional rows
-    ]
-    data = [
-        {"range": range_name, "values": values},
-        # Additional ranges to update ...
-    ]
-    body = {"valueInputOption": value_input_option, "data": data}
-    result = (
-        service.spreadsheets()
-        .values()
-        .batchUpdate(spreadsheetId=spreadsheet_id, body=body)
-        .execute()
-    )
-    print(f"{(result.get('totalUpdatedCells'))} cells updated.")
-    return result
-  except HttpError as error:
-    print(f"An error occurred: {error}")
-    return error
+    def append_values(
+        self, spreadsheet_id: str, range_name: str, values: List[List], value_input_option="RAW"
+    ):
+        body = {"values": values}
+        try:
+            result = (
+                self.service.spreadsheets()
+                .values()
+                .append(
+                    spreadsheetId=spreadsheet_id,
+                    range=range_name,
+                    valueInputOption=value_input_option,
+                    body=body,
+                )
+                .execute()
+            )
+            return result
+        except HttpError as e:
+            print(f"Error appending values: {e}")
+            raise
