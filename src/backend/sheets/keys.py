@@ -8,8 +8,8 @@ def create_api_key(project_id: str, suffix: str) -> Key:
     Creates and restrict an API key. Add the suffix for uniqueness.
 
     TODO(Developer):
-    1. Before running this sample,
-      set up ADC as described in https://cloud.google.com/docs/authentication/external/set-up-adc
+    1. Before running this sample, set up ADC as described in 
+    https://cloud.google.com/docs/authentication/external/set-up-adc
     2. Make sure you have the necessary permission to create API keys.
 
     Args:

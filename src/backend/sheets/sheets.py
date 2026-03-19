@@ -4,14 +4,19 @@ from googleapiclient.errors import HttpError
 
 # Google Sheets
 
-def create(title):
+def get_spreadsheet_creds():
+  creds, _ = google.auth.default(
+    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+  )
+
+def create_spreadsheet(title):
   """
   Creates the Sheet the user has access to.
   Load pre-authorized user credentials from the environment.
   TODO(developer) - See https://developers.google.com/identity
   for guides on implementing OAuth2 for the application.
   """
-  creds, _ = google.auth.default()
+  creds = get_spreadsheet_creds()
 
       # get create spreadsheet authorized api key
 
@@ -40,7 +45,7 @@ def get_values(spreadsheet_id, range_name):
 
       # get read authorized api key
 
-  creds, _ = google.auth.default()
+  creds = get_spreadsheet_creds()
   # pylint: disable=maybe-no-member
   try:
     service = build("sheets", "v4", credentials=creds)
@@ -65,9 +70,7 @@ def batch_get_values(spreadsheet_id, _range_names):
   TODO(developer) - See https://developers.google.com/identity
   for guides on implementing OAuth2 for the application.
   """
-  creds, _ = google.auth.default()
-
-      # get read authorized api key
+  creds = get_spreadsheet_creds()
 
   # pylint: disable=maybe-no-member
   try:
@@ -96,9 +99,7 @@ def append_values(spreadsheet_id, range_name, value_input_option, _values):
   for guides on implementing OAuth2 for the application.
   """
 
-      # get update authorized api key
-
-  creds, _ = google.auth.default()
+  creds = get_spreadsheet_creds()
   # pylint: disable=maybe-no-member
   try:
     service = build("sheets", "v4", credentials=creds)
@@ -136,9 +137,7 @@ def update_values(spreadsheet_id, range_name, value_input_option, _values):
   for guides on implementing OAuth2 for the application.
   """
 
-    # get update authorized api key
-
-  creds, _ = google.auth.default()
+  creds, = get_spreadsheet_creds()
   # pylint: disable=maybe-no-member
   try:
     service = build("sheets", "v4", credentials=creds)
@@ -175,10 +174,8 @@ def batch_update_values(
   TODO(developer) - See https://developers.google.com/identity
   for guides on implementing OAuth2 for the application.
   """
-
-    # get update authorized api key
   
-  creds, _ = google.auth.default()
+  creds = get_spreadsheet_creds()
   # pylint: disable=maybe-no-member
   try:
     service = build("sheets", "v4", credentials=creds)
