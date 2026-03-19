@@ -1,86 +1,94 @@
-## TESTS FOR sheets.py
-import google.auth
-from googleapiclient.discovery import build
+# test_sheets.py
+import os
+import pytest
 from googleapiclient.errors import HttpError
+from sheets import create_spreadsheet, get_values, batch_get_values, update_values, batch_update_values
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
-import time
-import random
+# ------------------------------
+# CONFIGURATION
+# ------------------------------
+TEST_SPREADSHEET_TITLE = "Test Sheet"
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-from .sheets import create_spreadsheet, get_values, batch_get_values, update_values, batch_update_values
 
-def log(msg: str):
-    print(f"[{time.localtime}]     {msg}")
+# ------------------------------
+# FIXTURES
+# ------------------------------
+@pytest.fixture(scope="module")
+def service():
+    """Initialize a Sheets API service for all tests."""
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES
+    )
+    return build("sheets", "v4", credentials=creds)
 
-"""
-input:
-    title: of spreadsheet
-    v: verbose (if greater than 0)
-Tests spreadsheet creation
-"""
-def create_spreadsheet_test(title: str, v: int):
+
+@pytest.fixture(scope="module")
+def spreadsheet_id(service):
+    """Create a test spreadsheet and clean up after tests."""
+    spreadsheet_id = create_spreadsheet(TEST_SPREADSHEET_TITLE)
+    yield spreadsheet_id
+    # Cleanup: delete the spreadsheet after tests
     try:
-        spreadsheet_id = create_spreadsheet(title)
-        if (v>0):
-            response = f"Spreadsheet ID: {spreadsheet_id}"
-        else:
-            response = ""
-        response += f"TEST: create_spreadsheet_test: ok"
-    except Exception as E:
-        response = f"TEST: create_spreadsheet_test: FAILED"
-    
-    log(response)
+        service.spreadsheets().delete(spreadsheetId=spreadsheet_id).execute()
+    except HttpError:
+        # deletion may fail if sheet already deleted, ignore
+        pass
 
 
-# HELPER FUNCTION FOR get_values_test
-def col_to_letter(col):
-    result = ""
-    while col > 0:
-        col, remainder = divmod(col - 1, 26)
-        result = chr(65 + remainder) + result
-    return result
+@pytest.fixture
+def test_data():
+    """Provide a deterministic 5x5 grid of test data."""
+    return [[i + j for j in range(5)] for i in range(5)]
 
-def random_range(max_rows, max_cols):
-    # Random start
-    start_row = random.randint(1, max_rows)
-    start_col = random.randint(1, max_cols)
 
-    # Random size (keep it small so it doesn't overflow)
-    height = random.randint(1, 5)
-    width = random.randint(1, 5)
+# ------------------------------
+# TESTS
+# ------------------------------
+def test_create_spreadsheet(spreadsheet_id):
+    assert spreadsheet_id is not None
+    assert isinstance(spreadsheet_id, str)
 
-    end_row = min(max_rows, start_row + height)
-    end_col = min(max_cols, start_col + width)
 
-    start_cell = f"{col_to_letter(start_col)}{start_row}"
-    end_cell = f"{col_to_letter(end_col)}{end_row}"
+def test_update_and_get_values(spreadsheet_id, test_data):
+    # Write known data
+    update_values(spreadsheet_id, "A1:E5", "RAW", test_data)
 
-    return f"{start_cell}:{end_cell}"
-"""
-input:
-    spreadsheet_id: of spreadsheet
-    v: verbose mode
-        - 0 : no verbose
-        - 1 : limited verbose
-        - 2 : heavy verbose
-Tests spreadsheet creation
-"""
-def get_values_test(spreadsheet_id, v: int):
-    response = ""
-    failed = False
-    for _ in range(100):
-        range_name = random_range(5, 15)
-        try:
-            result = get_values(spreadsheet_id, range_name)
-            if (v>0):
-                response += f"range {range_name} retrieved\n"
-            if (v>1):
-                response += f"{result}"
-        except Exception as E:
-            failed = True
-            response += f"range {range_name} NOT RETRIEVED, Exception {E} caught"
+    # Read back data
+    result = get_values(spreadsheet_id, "A1:E5")
+    values = result.get("values")
+    assert values == [[str(cell) for cell in row] for row in test_data] or values == test_data
 
-    if(failed):
-        response = f"TEST: get_values_test: FAILED"
-    else:
-        response += f"TEST: get_values_test: ok"
-    log(response)
+
+def test_batch_update_and_batch_get(spreadsheet_id, test_data):
+    # Batch update two ranges
+    data = [
+        {"range": "A1:C3", "values": [row[:3] for row in test_data[:3]]},
+        {"range": "D4:E5", "values": [row[3:5] for row in test_data[3:5]]}
+    ]
+    batch_update_values(spreadsheet_id, None, "RAW", data)
+
+    # Batch get the same ranges
+    ranges = ["A1:C3", "D4:E5"]
+    result = batch_get_values(spreadsheet_id, ranges)
+    value_ranges = result.get("valueRanges")
+    assert len(value_ranges) == 2
+    # Check first range
+    assert value_ranges[0]["values"] == [row[:3] for row in test_data[:3]]
+    # Check second range
+    assert value_ranges[1]["values"] == [row[3:5] for row in test_data[3:5]]
+
+
+def test_append_values(spreadsheet_id):
+    # Append a new row
+    new_row = [["X", "Y", "Z", "A", "B"]]
+    from sheets import append_values
+    result = append_values(spreadsheet_id, "A6:E6", "RAW", new_row)
+    assert result.get("updates")["updatedRows"] >= 1
+
+    # Verify appended row
+    read_result = get_values(spreadsheet_id, "A6:E6")
+    assert read_result["values"] == new_row
