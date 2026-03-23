@@ -1,7 +1,8 @@
 # test_sheets.py
 import os
 import pytest
-from .sheets import init_service, SheetsClient
+from .sheets import SheetsClient
+from.service import Service
 
 # ------------------------------
 # CONFIGURATION
@@ -17,7 +18,7 @@ SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 @pytest.fixture(scope="module")
 def service():
     """Initialize a single Sheets API service for all tests."""
-    return init_service(SERVICE_ACCOUNT_FILE)
+    return Service(SERVICE_ACCOUNT_FILE)
 
 
 @pytest.fixture(scope="module")

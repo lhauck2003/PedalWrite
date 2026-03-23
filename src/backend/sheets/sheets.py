@@ -1,24 +1,7 @@
 # sheets.py
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google.oauth2 import service_account
 from typing import List, Optional
-
-# ------------------------------
-# CONFIGURATION
-# ------------------------------
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
-          "https://www.googleapis.com/auth/drive",
-        ]
-
-def init_service(service_account_file: str):
-    """Initialize Google Sheets API service."""
-    creds = service_account.Credentials.from_service_account_file(
-        service_account_file,
-        scopes=SCOPES
-    )
-    return build("sheets", "v4", credentials=creds)
-
 
 # ------------------------------
 # SHEETS CLIENT CLASS
@@ -32,7 +15,7 @@ the Google Project website.
 """
 class SheetsClient:
     def __init__(self, service):
-        self.service = service
+        self.service = service.service
 
     # --------------------------
     # Read values
