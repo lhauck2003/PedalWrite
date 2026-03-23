@@ -1,12 +1,13 @@
 # test_sheets.py
 import os
 import pytest
-from sheets import init_service, SheetsClient
+from .sheets import init_service, SheetsClient
 
 # ------------------------------
 # CONFIGURATION
 # ------------------------------
-TEST_SPREADSHEET_TITLE = "Test Sheet"
+TEST_SPREADSHEET_TITLE = "Bike First Data Test"
+TEST_SPREADSHEET_ID = "1WI8KGnWOzRgCjlQBVJQI6hksxrKh03sKW4iUy9kzwXs"
 SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 
@@ -28,7 +29,8 @@ def sheets(service):
 @pytest.fixture(scope="module")
 def spreadsheet_id(sheets):
     """Create a test spreadsheet and clean up after tests."""
-    spreadsheet_id = sheets.create_spreadsheet(TEST_SPREADSHEET_TITLE)
+    #spreadsheet_id = sheets.create_spreadsheet(TEST_SPREADSHEET_TITLE)
+    spreadsheet_id = TEST_SPREADSHEET_ID
     yield spreadsheet_id
     # Cleanup: delete spreadsheet after tests
     try:
@@ -73,6 +75,11 @@ def test_batch_update_and_batch_get(sheets, spreadsheet_id, test_data):
     # Batch get the same ranges
     ranges = ["A1:C3", "D4:E5"]
     value_ranges = sheets.batch_get_values(spreadsheet_id, ranges)
+    # items returned as strings, change to int
+    for range in value_ranges:
+        for item in range["values"]:
+            for i in item:
+                item[item.index(i)] = int(i)
 
     assert len(value_ranges) == 2
     assert value_ranges[0]["values"] == [row[:3] for row in test_data[:3]]

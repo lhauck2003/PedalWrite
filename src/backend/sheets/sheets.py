@@ -7,12 +7,15 @@ from typing import List, Optional
 # ------------------------------
 # CONFIGURATION
 # ------------------------------
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
+          "https://www.googleapis.com/auth/drive",
+        ]
 
 def init_service(service_account_file: str):
     """Initialize Google Sheets API service."""
     creds = service_account.Credentials.from_service_account_file(
-        service_account_file, scopes=SCOPES
+        service_account_file,
+        scopes=SCOPES
     )
     return build("sheets", "v4", credentials=creds)
 
@@ -20,25 +23,16 @@ def init_service(service_account_file: str):
 # ------------------------------
 # SHEETS CLIENT CLASS
 # ------------------------------
+"""
+Note, creating new spreadsheets is not possible with this class, since it uses 
+service accounts, which do not have an associated google drive. In order for this
+class to communicate (update) a spreadsheet, the spreadsheet must be shared with
+the service account email, which is in the service account json downloaded from
+the Google Project website.
+"""
 class SheetsClient:
     def __init__(self, service):
         self.service = service
-
-    # --------------------------
-    # Create spreadsheet
-    # --------------------------
-    def create_spreadsheet(self, title: str) -> str:
-        spreadsheet = {"properties": {"title": title}}
-        try:
-            sheet = (
-                self.service.spreadsheets()
-                .create(body=spreadsheet, fields="spreadsheetId")
-                .execute()
-            )
-            return sheet.get("spreadsheetId")
-        except HttpError as e:
-            print(f"Error creating spreadsheet: {e}")
-            raise
 
     # --------------------------
     # Read values
