@@ -79,25 +79,37 @@ class SheetsClient:
             raise
 
     def batch_update_values(
-        self, spreadsheet_id: str, ranges, data: List[dict], value_input_option="RAW"
+        self,
+        spreadsheet_id: str,
+        ranges: List[str],
+        values_list: List[List[List]],
+        value_input_option="RAW"
     ):
-        body = {"valueInputOption": value_input_option, "data": data}
+        data = [
+            {"range": r, "values": v}
+            for r, v in zip(ranges, values_list)
+        ]
+
+        body = {
+            "valueInputOption": value_input_option,
+            "data": data
+        }
+
         try:
             result = (
                 self.service.spreadsheets()
                 .values()
                 .batchUpdate(
                     spreadsheetId=spreadsheet_id,
-                    range=ranges,
-                    valueInputOption=value_input_option, 
                     body=body
-                    )
+                )
                 .execute()
             )
             return result
         except HttpError as e:
             print(f"Error batch updating values: {e}")
             raise
+
 
     def append_values(
         self, spreadsheet_id: str, range_name: str, values: List[List], value_input_option="RAW"

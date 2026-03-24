@@ -67,14 +67,14 @@ def test_update_and_get_values(sheets, spreadsheet_id, test_data):
 
 def test_batch_update_and_batch_get(sheets, spreadsheet_id, test_data):
     # Batch update two ranges
+    ranges = ["A1:C3", "D4:E5"]
     data = [
-        {"range": "A1:C3", "values": [row[:3] for row in test_data[:3]]},
-        {"range": "D4:E5", "values": [row[3:5] for row in test_data[3:5]]}
+        [row[:3] for row in test_data[:3]],
+        [row[3:5] for row in test_data[3:5]]
     ]
-    sheets.batch_update_values(spreadsheet_id, data)
+    sheets.batch_update_values(spreadsheet_id, ranges, data)
 
     # Batch get the same ranges
-    ranges = ["A1:C3", "D4:E5"]
     value_ranges = sheets.batch_get_values(spreadsheet_id, ranges)
     # items returned as strings, change to int
     for range in value_ranges:
