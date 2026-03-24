@@ -2,6 +2,8 @@
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from typing import List, Optional
+import requests
+from .utils import SPREADSHEETS_URL
 
 # ------------------------------
 # SHEETS CLIENT CLASS
@@ -32,6 +34,11 @@ class SheetsClient:
         except HttpError as e:
             print(f"Error reading values: {e}")
             raise
+
+    def refresh(self):
+        creds = self.service._http.credentials
+        if not creds.valid:
+            creds.refresh(requests.Request())
 
     def batch_get_values(self, spreadsheet_id: str, ranges: List[str]):
         try:
@@ -106,3 +113,13 @@ class SheetsClient:
         except HttpError as e:
             print(f"Error appending values: {e}")
             raise
+
+    def get_spreadsheet_metadata(self, spreadsheet_id: str):
+        return (
+            self.service.spreadsheets()
+            .get(
+                spreadsheetId=spreadsheet_id,
+                includeGridData=False
+            )
+            .execute()
+        )
