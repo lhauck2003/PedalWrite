@@ -1,6 +1,7 @@
 from .sheets import SheetsClient
 from typing import Optional, Iterable
 from .utils import absolute_range_name
+from .urls import WORKSHEET_URL
 
 class Worksheet():
     def __init__(
@@ -18,6 +19,14 @@ class Worksheet():
     @property
     def title(self):
         return self._properties["title"]
+    
+    @property
+    def id(self):
+        return self._properties["sheetId"]
+    
+    @property
+    def url(self):
+        return WORKSHEET_URL % (self.spreadsheet_id, self.id)
 
     def get_values(self, range_name: Optional[str]):
         return self.get(range_name)

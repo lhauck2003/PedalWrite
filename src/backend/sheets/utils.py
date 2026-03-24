@@ -1,8 +1,6 @@
 from typing import Optional
 from .worksheet import Worksheet
 
-SPREADSHEETS_URL = "https://sheets.googleapis.com/v4/spreadsheets/"
-
 def absolute_range_name(sheet_name: str, range_name: Optional[str]):
     sheet_name = "'{}'".format(sheet_name.replace("'", "''"))
 

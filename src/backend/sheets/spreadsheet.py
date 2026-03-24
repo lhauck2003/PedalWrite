@@ -1,6 +1,7 @@
 from .sheets import SheetsClient
 from .worksheet import Worksheet
 from typing import Optional, List
+from .urls import SPREADSHEETS_URL
 
 class Spreadsheet:
 
@@ -21,7 +22,7 @@ class Spreadsheet:
     
     @property
     def url(self):
-        return self._properties["url"]
+        return SPREADSHEETS_URL % str(self.id)
     
     @property
     def sheet1(self):

@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from typing import List, Optional
 import requests
-from .utils import SPREADSHEETS_URL
+from .urls import SPREADSHEETS_URL
 
 # ------------------------------
 # SHEETS CLIENT CLASS
