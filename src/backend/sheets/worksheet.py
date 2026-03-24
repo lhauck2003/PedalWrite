@@ -13,9 +13,6 @@ class Worksheet():
         self._properties = properties
         self.spreadsheet_id = spreadsheet_id
 
-        metadata = self.get_sheet_metadata()
-        self._properties.update(metadata["properties"])
-
     @property
     def title(self):
         return self._properties["title"]

@@ -4,7 +4,7 @@ from googleapiclient.errors import HttpError
 from typing import List, Optional
 import requests
 
-from .urls import SPREADSHEETS_URL
+from .urls import SPREADSHEETS_URL, SPREADSHEET_BATCH_UPDATE_URL
 
 # ------------------------------
 # SHEETS CLIENT CLASS
@@ -138,6 +138,31 @@ class SheetsClient:
             .get(
                 spreadsheetId=spreadsheet_id,
                 includeGridData=False
+            )
+            .execute()
+        )
+        
+    def get_worksheet(self, spreadsheet_id, index: int):
+        return(
+            self.get_spreadsheet_metadata(spreadsheet_id)["sheets"][index]["properties"]
+        )
+
+    def create_worksheet(self, id, body):
+        return(
+            self.service.spreadsheets()
+            .batchUpdate(
+                spreadsheetId = id,
+                body = body
+            )
+            .execute()
+        )
+    
+    def delete_worksheet(self, id, body):
+        return(
+            self.service.spreadsheets()
+            .batchUpdate(
+                spreadsheetId = id,
+                body = body
             )
             .execute()
         )
