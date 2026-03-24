@@ -50,14 +50,14 @@ class Spreadsheet:
         self.client.update_values(spreadsheet_id, range_name, values, value_input_option=input_option)
 
     def batch_update_values(
-        self, spreadsheet_id: str, data: List[dict], raw: bool=True
+        self, spreadsheet_id: str, ranges, data: List[dict], raw: bool=True
     ):
         if raw:
             input_option = "RAW"
         else:
             input_option = "USER_ENTERED"
 
-        self.client.batch_update_values(spreadsheet_id, data, value_input_option=input_option)
+        self.client.batch_update_values(spreadsheet_id, ranges, data, value_input_option=input_option)
 
     def append_values(
         self, spreadsheet_id: str, range_name: str, values: List[List], raw: bool = True

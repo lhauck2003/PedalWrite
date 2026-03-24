@@ -3,6 +3,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from typing import List, Optional
 import requests
+
 from .urls import SPREADSHEETS_URL
 
 # ------------------------------
@@ -78,14 +79,19 @@ class SheetsClient:
             raise
 
     def batch_update_values(
-        self, spreadsheet_id: str, data: List[dict], value_input_option="RAW"
+        self, spreadsheet_id: str, ranges, data: List[dict], value_input_option="RAW"
     ):
         body = {"valueInputOption": value_input_option, "data": data}
         try:
             result = (
                 self.service.spreadsheets()
                 .values()
-                .batchUpdate(spreadsheetId=spreadsheet_id, body=body)
+                .batchUpdate(
+                    spreadsheetId=spreadsheet_id,
+                    range=ranges,
+                    valueInputOption=value_input_option, 
+                    body=body
+                    )
                 .execute()
             )
             return result
