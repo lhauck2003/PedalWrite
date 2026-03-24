@@ -37,7 +37,7 @@ class Spreadsheet:
         return self.client.get_values(spreadsheet_id, range_name)
 
     def batch_get_values(self, spreadsheet_id: str, ranges):
-        return self.client.get_values(spreadsheet_id, ranges)
+        return self.client.batch_get_values(spreadsheet_id, ranges)
 
     def update_values(
         self, spreadsheet_id: str, range_name: str, values: List[List], raw: bool=True
@@ -80,10 +80,10 @@ class Spreadsheet:
     def worksheets(self):
         sheet_data = self.get_sheet_metadata()
         worksheets = [
-            Worksheet(self, s["properties"], self.id, self.client)
+            Worksheet(self.id, self.client, s["properties"])
             for s in sheet_data["sheets"]
         ]
         return worksheets
 
     def get_sheet_metadata(self):
-        return self.client.get_sheet_metadata(self.id)
+        return self.client.get_spreadsheet_metadata(self.id)

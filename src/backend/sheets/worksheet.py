@@ -1,5 +1,5 @@
 from .sheets import SheetsClient
-from typing import Optional, Iterable
+from typing import Optional, Iterable, List
 from .utils import absolute_range_name
 from .urls import WORKSHEET_URL
 
@@ -8,13 +8,13 @@ class Worksheet():
             self,
             spreadsheet_id, 
             sheet_client: SheetsClient, 
-            properties):
+            properties: Optional[dict]):
         self.client = sheet_client
         self._properties = properties
+        self.spreadsheet_id = spreadsheet_id
 
         metadata = self.get_sheet_metadata()
         self._properties.update(metadata["properties"])
-        self.spreadsheet_id = spreadsheet_id
 
     @property
     def title(self):
@@ -47,7 +47,23 @@ class Worksheet():
         else:
             input_option = "USER_ENTERED"   
 
-        self.batch_update(ranges, values, input_option)         
+        self.batch_update(ranges, values, input_option)  
+
+    def append_values(
+        self, range_name: str, values: List[List], raw: bool = True
+    ):       
+        if raw:
+            input_option = "RAW"
+        else:
+            input_option = "USER_ENTERED"
+
+        self.append(range_name, values, input_option)
+
+    def append(
+        self, range_name: str, values: List[List], input_option
+    ):
+        get_range_name = absolute_range_name(self.title, range_name)
+        self.client.append_values(self.spreadsheet_id, get_range_name, values, value_input_option=input_option)
 
     def update(self, range_name: Optional[str], values, input_option):
         get_range_name = absolute_range_name(self.title, range_name)
@@ -69,4 +85,4 @@ class Worksheet():
         return self.client.batch_get_values(self.spreadsheet_id, ranges)
     
     def get_sheet_metadata(self):
-        return self.client.get_sheet_metadata(self.spreadsheet_id)
+        return self.client.get_spreadsheet_metadata(self.spreadsheet_id)

@@ -2,7 +2,9 @@
 import os
 import pytest
 from .sheets import SheetsClient
-from.service import Service
+from .service import Service
+from .spreadsheet import Spreadsheet
+from .worksheet import Worksheet
 
 # ------------------------------
 # CONFIGURATION
@@ -44,6 +46,14 @@ def spreadsheet_id(sheets):
 def test_data():
     """Deterministic 5x5 grid for testing."""
     return [[i + j for j in range(5)] for i in range(5)]
+
+@pytest.fixture
+def spreadsheet(sheets):
+    return Spreadsheet(sheets)
+
+@pytest.fixture
+def worksheet(spreadsheet_id, sheets):
+    return Worksheet(spreadsheet_id, sheets)
 
 
 # ------------------------------
