@@ -1,3 +1,4 @@
+# api/models
 from __future__ import annotations
 
 from django.db import models
@@ -11,6 +12,8 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.validators import URLValidator
 from django.core.validators import validate_email as django_validate_email
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 import api.constants as c
 
 def _coerce_str(
@@ -77,6 +80,14 @@ def validate_phone(value: str | None) -> None:
 def validate_email(value: str | None) -> None:
     _parse_with_api_validator(parse_email, value, 'email')
 
+class SkillLevel(models.IntegerChoices):
+    # Might Want to expand to allow other levels?
+    INTRO = 0, _('Introductory')
+    NOVICE = 1, _('Model')
+    INTERMIDIATE = 2, _('Support')
+    ADVANCED = 3, _('Encourage')
+    MASTERED = 4, _('Release')
+
 # Create your models here.
 
 class Session(models.Model):
@@ -139,11 +150,18 @@ class Rider(models.Model):
         blank=True,
         db_column='session_id',
     )
+    leader = models.ForeignKey(
+        'Leader',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='leader_id',
+        related_name='riders',
+    )
 
     caregivers = models.ManyToManyField(
         "Caregiver",
-        through="CaregiverRider",
-        related_name="riders"
+        related_name="riders",
     )
 
     class Meta:
@@ -152,6 +170,7 @@ class Rider(models.Model):
     def __str__(self) -> str:
         return f"Rider: {self.firstname} {self.lastname}"
 
+# Caregiver is an account type
 class Caregiver(models.Model):
     id = models.UUIDField(
         primary_key=True,
@@ -159,37 +178,11 @@ class Caregiver(models.Model):
         editable=False,
         db_column='caregiver_id',
     )
-
-    class Meta:
-        db_table = 'caregivers'
-
-    def __str__(self):
-        return f"Caregiver {self.id}"
-
-class CaregiverRider(models.Model):
-    caregiver = models.ForeignKey(
-        Caregiver,
-        on_delete=models.CASCADE,
-        db_column='caregiver_id',
-    )
-    rider = models.ForeignKey(
-        Rider,
-        on_delete=models.CASCADE,
-        db_column='rider_id',
-    )
-    firstname = models.TextField(
-        validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
-    )
-    lastname = models.TextField(
-        validators=[MaxLengthValidator(c.NAME_MAX_LEN)],
-    )
+    firstname = models.CharField(max_length=120)
+    lastname = models.CharField(max_length=120)
+    email = models.EmailField(validators=[validate_email])
     phone = models.TextField(
         validators=[validate_phone],
-        null=True,
-        blank=True,
-    )
-    email = models.TextField(
-        validators=[validate_email],
         null=True,
         blank=True,
     )
@@ -199,11 +192,14 @@ class CaregiverRider(models.Model):
     )
 
     class Meta:
-        db_table = 'caregiver_riders'
-        unique_together=('caregiver', 'rider')
+        db_table = 'caregivers'
+
+    @property
+    def name(self):
+        return f'{self.firstname} {self.lastname}'.strip()
 
     def __str__(self):
-        return f"Caregiver: {self.firstname} {self.lastname}"
+        return self.name or f"Caregiver {self.id}"
 
 class Skill(models.Model):
     id = models.UUIDField(
@@ -214,15 +210,21 @@ class Skill(models.Model):
     skillname = models.TextField(
         validators=[MaxLengthValidator(c.SKILL_NAME_MAX_LEN)],
     )
+    class Level(models.IntegerChoices):
+        LEVEL_1 = 1, _("Level One")
+        LEVEL_2 = 2, _("Level Two")
+        LEVEL_3 = 3, _("Level Three")
+        LEVEL_4 = 4, _("Level Four")
 
     formlevel = models.IntegerField(
-        validators=[
-            MinValueValidator(c.SKILL_LEVEL_MIN),
-            MaxValueValidator(c.SKILL_LEVEL_MAX),
-        ],
+        choices=Level.choices,
         null=False,
         blank=False,
-        default=0,
+        default=Level.LEVEL_1,
+    )
+
+    category = models.TextField(
+        validators=[MaxLengthValidator(c.SKILL_NAME_MAX_LEN)]
     )
 
     def __str__(self) -> str:
@@ -244,6 +246,7 @@ class DailyForm(models.Model):
         Rider,
         on_delete=models.DO_NOTHING,
         db_column='rider_id',
+        related_name='daily_forms'
     )
     session = models.ForeignKey(
         Session,
@@ -251,6 +254,13 @@ class DailyForm(models.Model):
         null=True,
         blank=True,
         db_column='session_id',
+    )
+    leader = models.ForeignKey(
+        'Leader',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='daily_forms',
     )
     comments = models.TextField(
         validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
@@ -278,6 +288,11 @@ class DailyForm(models.Model):
         return f"Daily Form for Rider: {self.rider.firstname} in Session: {self.session.sessionnumber}" if self.session and self.rider else "Blank Daily Form"
 
 class DailyFormSkill(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
     dailyform = models.ForeignKey(
         DailyForm,
         on_delete=models.CASCADE,
@@ -294,14 +309,11 @@ class DailyFormSkill(models.Model):
 
     # unique to each skill-form relationship
     level = models.IntegerField(
-        validators=[
-            MinValueValidator(c.SKILL_LEVEL_MIN),
-            MaxValueValidator(c.SKILL_LEVEL_MAX),
-
-        ],
+        choices=SkillLevel.choices,
         null=True,
         blank=True,
         editable=True,
+        default=SkillLevel.INTRO
     )
 
     comments = models.TextField(
@@ -330,7 +342,7 @@ class FinalForm(models.Model):
         Rider,
         on_delete=models.DO_NOTHING,
         db_column='rider_id',
-        related_name="daily_forms",
+        related_name="final_forms",
     )
     session = models.ForeignKey(
         Session,
@@ -338,7 +350,14 @@ class FinalForm(models.Model):
         null=True,
         blank=True,
         db_column='session_id',
-        related_name="daily_forms"
+        related_name="final_forms"
+    )
+    leader = models.ForeignKey(
+        'Leader',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='final_forms',
     )
     comments = models.TextField(
         validators=[MaxLengthValidator(c.LONG_TEXT_MAX_LEN)],
@@ -368,10 +387,16 @@ class FinalForm(models.Model):
 
 
 class FinalFormSkill(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
     finalform = models.ForeignKey(
         FinalForm,
         on_delete=models.CASCADE,
         db_column='finalform_id',
+        related_name='skill_links'
     )
     skill = models.ForeignKey(
         Skill,
@@ -381,14 +406,11 @@ class FinalFormSkill(models.Model):
 
     # unique to each skill-form relationship
     level = models.IntegerField(
-        validators=[
-            MinValueValidator(c.SKILL_LEVEL_MIN),
-            MaxValueValidator(c.SKILL_LEVEL_MAX),
-
-        ],
+        choices=SkillLevel.choices,
         null=True,
         blank=True,
         editable=True,
+        default=SkillLevel.INTRO
     )
 
     comments = models.TextField(
@@ -404,3 +426,190 @@ class FinalFormSkill(models.Model):
 
     def __str__(self):
         return f"{self.skill} Level {self.level}"
+    
+class Bike(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        db_column='bike_id',
+    )
+    class BikeSizes(models.IntegerChoices):
+        SMALL = 1, _('Small')
+        MEDIUM = 2, _('Medium')
+        LARGE = 3, _('Large')
+    
+    name = models.TextField(
+        validators=[MaxLengthValidator(c.SHORT_TEXT_MAX_LEN)],
+        null=True,
+        blank=True,
+        editable=True,
+    )
+    size = models.IntegerField(choices=BikeSizes.choices, default=BikeSizes.SMALL)
+    riders = models.ManyToManyField(Rider, through='BikeSpecs')
+
+    class Meta:
+        db_table = 'bikes'
+
+class BikeSpecs(models.Model):
+    bike = models.ForeignKey(Bike, on_delete=models.CASCADE, db_column='bike_id')
+    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, db_column='rider_id')
+
+    class Days(models.IntegerChoices):
+        DAY_ONE = 1, _('Day One')
+        DAY_TWO = 2, _('Day Two')
+        DAY_THREE = 3, _('Day Three')
+        DAY_FOUR = 4, _('Day Four')
+        DAY_FIVE = 5, _('Day Five')
+
+    day = models.IntegerField(choices=Days.choices, default=Days.DAY_ONE)
+    seat_height = models.FloatField()
+    left_piston = models.FloatField()
+    right_piston = models.FloatField()
+
+    class Meta:
+        db_table = 'bike_specs'
+        unique_together = [['bike', 'rider', 'day']]
+
+
+# ------------------------------------------
+# Users
+# ------------------------------------------
+
+class Admin(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    firstname = models.CharField(max_length=120)
+    lastname = models.CharField(max_length=120)
+    email = models.EmailField(validators=[validate_email])
+
+class Leader(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        db_column='leader_id',
+    )
+    firstname = models.CharField(max_length=120)
+    lastname = models.CharField(max_length=120)
+    email = models.EmailField(validators=[validate_email])
+
+    class Meta:
+        db_table = 'leaders'
+
+    @property
+    def name(self):
+        return f'{self.firstname} {self.lastname}'.strip()
+
+    def __str__(self):
+        return self.name or f'Leader {self.pk}'
+
+
+class AccountManager(BaseUserManager):
+    use_in_migrations = True
+
+    def _create_user(self, email, **extra_fields):
+        email = self.normalize_email(email)
+        if not email:
+            raise ValueError('The email field must be set')
+        user = self.model(email=email, **extra_fields)
+        user.set_unusable_password()
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, email, **extra_fields):
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+        return self._create_user(email, **extra_fields)
+
+    def create_superuser(self, email, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', Account.Roles.SUPERADMIN)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True')
+
+        return self._create_user(email, **extra_fields)
+
+
+class Account(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    class Roles(models.TextChoices):
+        ADMIN = 'admin', 'Admin'
+        LEADER = 'leader', 'Leader'
+        CAREGIVER = 'caregiver', 'Caregiver'
+        ANONYMOUS = 'anonymous', 'Anonymous/Sub User'
+
+    email = models.EmailField(unique=True, validators=[validate_email])
+    firebase_uid = models.CharField(max_length=128, unique=True)
+    role = models.CharField(
+        max_length=32,
+        choices=Roles.choices,
+        default=Roles.ANONYMOUS,
+    )
+    leader = models.OneToOneField(
+        Leader,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='user',
+    )
+    caregiver = models.OneToOneField(
+        'api.Caregiver',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='user',
+    )
+    #admin = models.OneToOneField(
+    #    'api.Admin',
+    #    on_delete=models.SET_NULL,
+    #    null=True,
+    #    blank=True,
+    #    related_name='user',
+    #)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    objects = AccountManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ()
+
+    class Meta:
+        db_table = 'accounts'
+
+    @property
+    def username(self):
+        return self.email
+
+    @property
+    def access_profile(self):
+        return self
+
+    @property
+    def is_superadmin(self):
+        return self.role == self.Roles.ADMIN or self.is_superuser
+
+    @property
+    def is_leader(self):
+        return self.role == self.Roles.LEADER and self.leader_id is not None
+
+    @property
+    def is_caregiver(self):
+        return self.role == self.Roles.CAREGIVER and self.caregiver_id is not None
+
+    def __str__(self):
+        return f'{self.email} ({self.role})'
