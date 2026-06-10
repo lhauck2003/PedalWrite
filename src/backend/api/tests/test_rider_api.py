@@ -19,8 +19,8 @@ class RiderAPITests(BaseAPITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
-    def test_superadmin_can_create_rider(self):
-        self.authenticate(self.superadmin)
+    def test_admin_can_create_rider(self):
+        self.authenticate(self.admin)
 
         payload = {
             "firstname": "Test",

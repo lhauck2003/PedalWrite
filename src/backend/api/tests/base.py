@@ -37,10 +37,10 @@ class BaseAPITestCase(TestCase):
         self.caregiver_user.save()
 
         # Superadmin
-        self.superadmin = Account.objects.create_user(
+        self.admin = Account.objects.create_user(
             email="admin@test.com",
             firebase_uid="admin123",
-            role=Account.Roles.SUPERADMIN,
+            role=Account.Roles.ADMIN,
             is_superuser=True,
             is_staff=True,
         )

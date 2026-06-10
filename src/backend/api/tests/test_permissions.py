@@ -5,12 +5,12 @@ from auth.permissions import filter_queryset_for_user
 
 class PermissionTests(BaseAPITestCase):
 
-    def test_superadmin_sees_all_riders(self):
+    def test_admin_sees_all_riders(self):
         Rider.objects.create(firstname="A", lastname="A")
         Rider.objects.create(firstname="B", lastname="B")
 
         qs = Rider.objects.all()
-        filtered = filter_queryset_for_user(qs, self.superadmin)
+        filtered = filter_queryset_for_user(qs, self.admin)
 
         self.assertEqual(filtered.count(), 2)
 

@@ -1,5 +1,5 @@
 from api.tests.base import BaseAPITestCase
-from api.models import Rider, Skill, DailyForm, FinalForm, Bike, BikeSpecs, Session, Caregiver, CaregiverRider
+from api.models import Rider, Skill, DailyForm, FinalForm, Bike, BikeSpecs, Session, Caregiver
 from api.serializers import DailyFormSerializer
 from django.urls import reverse
 from rest_framework import status
@@ -8,11 +8,12 @@ from rest_framework import status
 class AdminTests(BaseAPITestCase):
 
     def test_create_new_skill(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         payload = {
             "skillname": "Cornering",
             "formlevel": 1,
+            "category": "basic"
         }
 
         response = self.client.post(
@@ -29,9 +30,10 @@ class AdminTests(BaseAPITestCase):
 
         self.assertEqual(skill.skillname, "Cornering")
         self.assertEqual(skill.formlevel, 1)
+        self.assertEqual(skill.category, "basic")
 
     def test_delete_skill(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         skill = Skill.objects.create(
             skillname="Cornering",
@@ -49,7 +51,7 @@ class AdminTests(BaseAPITestCase):
         )
 
     def test_update_skill_fields(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         skill = Skill.objects.create(
             skillname="Cornering",
@@ -74,7 +76,7 @@ class AdminTests(BaseAPITestCase):
         )
 
     def test_add_new_rider_with_session(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         session = Session.objects.create(
             sessionnumber=1,
@@ -102,7 +104,7 @@ class AdminTests(BaseAPITestCase):
         self.assertEqual(rider.leader_id, self.leader_profile.id)
 
     def test_change_riders_leader(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         rider = Rider.objects.create(
             firstname="John",
@@ -130,7 +132,7 @@ class AdminTests(BaseAPITestCase):
         )
 
     def test_add_rider_with_multiple_caregivers_and_leader_and_session(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         session = Session.objects.create(
             sessionnumber=1,
@@ -153,23 +155,6 @@ class AdminTests(BaseAPITestCase):
             leader=self.leader_profile,
         )
 
-        CaregiverRider.objects.create(
-            caregiver=caregiver1,
-            rider=rider,
-            isemergencycontact=True,
-        )
-
-        CaregiverRider.objects.create(
-            caregiver=caregiver2,
-            rider=rider,
-            isemergencycontact=False,
-        )
-
-        self.assertEqual(
-            CaregiverRider.objects.filter(rider=rider).count(),
-            2,
-        )
-
         self.assertEqual(
             rider.leader_id,
             self.leader_profile.id,
@@ -180,43 +165,9 @@ class AdminTests(BaseAPITestCase):
             session.id,
         )
 
-    def test_update_riders_caregiver_and_assign_as_emergency_contact(self):
-        self.authenticate(self.superadmin)
-
-        rider = Rider.objects.create(
-            firstname="John",
-            lastname="Doe",
-            leader=self.leader_profile,
-        )
-
-        caregiver = Caregiver.objects.create(
-            firstname="Jane",
-            lastname="Doe",
-        )
-
-        link = CaregiverRider.objects.create(
-            rider=rider,
-            caregiver=caregiver,
-            isemergencycontact=False,
-        )
-
-        response = self.client.patch(
-            reverse("caregiverrider-detail", args=[link.id]),
-            {
-                "isemergencycontact": True,
-            },
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        link.refresh_from_db()
-
-        self.assertTrue(link.isemergencycontact)
-
 
     def test_create_new_bike(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         payload = {
             "name": "Red Bike",
@@ -238,7 +189,7 @@ class AdminTests(BaseAPITestCase):
 
 
     def test_create_multiple_new_bikes(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         bikes = [
             {
@@ -271,7 +222,7 @@ class AdminTests(BaseAPITestCase):
 
 
     def test_assign_bike_to_rider(self):
-        self.authenticate(self.superadmin)
+        self.authenticate(self.admin)
 
         rider = Rider.objects.create(
             firstname="Test",
