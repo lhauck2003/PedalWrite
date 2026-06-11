@@ -2,3 +2,8 @@ asgiref==3.11.1
 Django==6.0.3
 sqlparse==0.5.5
 python-dotenv
+google-auth 
+google-api-python-client 
+google-cloud-api-keys
+paddleocr
+pytest

@@ -211,3 +211,6 @@ sample\ forms/
 output/
 
 .DS_Store
+
+# credentials
+*.json
