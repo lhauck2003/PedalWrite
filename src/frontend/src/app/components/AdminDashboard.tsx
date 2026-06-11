@@ -53,6 +53,13 @@ export function AdminDashboard() {
       path: "/admin/leaders",
     },
     {
+      title: "Manage Admins",
+      desc: "Invite admins and manage their accounts",
+      icon: Shield,
+      color: "bg-muted text-muted-foreground",
+      path: "/admin/admins",
+    },
+    {
       title: "Bike Inventory",
       desc: "Add, update, or remove bikes from the fleet",
       icon: Bike,

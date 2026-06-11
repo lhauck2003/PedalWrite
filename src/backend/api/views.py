@@ -173,6 +173,14 @@ class UpdateRoleView(APIView):
                 account.leader.delete()
                 account.leader = None
             account.caregiver = Caregiver.objects.create()
+        elif (role == "admin" or role == "Admin"):
+            if account.caregiver:
+                account.caregiver.delete()
+                account.caregiver = None
+            if account.leader:
+                account.leader.delete()
+                account.leader = None
+            account.role = "admin"
         else:
             #Admin.objects.delete(account.admin)
             if account.caregiver:

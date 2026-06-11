@@ -20,13 +20,14 @@ import {
   createSession, updateSession, deleteSession, ApiSession,
 } from "../store/api";
 
-type Section = "skills" | "riders" | "caregivers" | "leaders" | "bikes" | "overview" | "sessions";
+type Section = "skills" | "riders" | "caregivers" | "leaders" | "admins" | "bikes" | "overview" | "sessions";
 
 const SECTION_META: Record<Section, { title: string; icon: React.ElementType }> = {
   skills:     { title: "Manage Skills",     icon: BookOpen  },
   riders:     { title: "Manage Riders",     icon: Users     },
   caregivers: { title: "Manage Caregivers", icon: UserCheck },
   leaders:    { title: "Manage Leaders",    icon: Shield    },
+  admins:     { title: "Manage Admins",     icon: Shield    },
   bikes:      { title: "Bike Inventory",    icon: Bike      },
   overview:   { title: "Totals Overview",   icon: BarChart2 },
   sessions:   { title: "Manage Sessions",   icon: Calendar  },
@@ -55,6 +56,7 @@ export function AdminManagePage() {
         {s === "riders"     && <RidersSection />}
         {s === "caregivers" && <CaregiversSection />}
         {s === "leaders"    && <LeadersSection />}
+        {s === "admins"     && <AdminSection />}
         {s === "bikes"      && <BikesSection />}
         {s === "overview"   && <OverviewSection />}
         {s === "sessions"   && <SessionsSection />}
@@ -783,6 +785,117 @@ function LeadersSection() {
     </div>
   );
 }
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+
+function AdminSection() {
+  const { data: users, loading, error, refetch: refetchUsers } = useUsers();
+  const [saving, setSaving] = useState<string | null>(null);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
+
+  const adminAccounts    = (users ?? []).filter((u) => u.role === "admin");
+  const assignableAccounts = (users ?? []).filter(
+    (u) => u.account_id && u.role !== "admin"
+  );
+
+  const handleSetRole = async (accountId: string, role: "admin" | "anonymous") => {
+    setSaving(accountId); setSaveErr(null);
+    try { await updateAccountRole(accountId, role); refetchUsers(); }
+    catch (e: unknown) { setSaveErr(e instanceof Error ? e.message : "Failed"); }
+    finally { setSaving(null); }
+  };
+
+  if (loading) return <div className="flex justify-center py-10"><Spinner /></div>;
+  if (error)   return <ErrMsg msg={error} />;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-accent/10 border border-accent/20 rounded-2xl p-4 flex gap-3">
+        <UserCog size={18} className="text-accent shrink-0 mt-0.5" />
+        <div>
+          <p className="text-foreground" style={{ fontSize: "13px", fontWeight: 600 }}>Assigning leaders</p>
+          <p className="text-muted-foreground mt-0.5" style={{ fontSize: "12px", lineHeight: "1.5" }}>
+            Set a signed-in account's role to <strong>admin</strong> here.
+          </p>
+        </div>
+      </div>
+
+      {saveErr && <ErrMsg msg={saveErr} />}
+
+      {/* Current admins */}
+      <div>
+        <p className="text-muted-foreground mb-2"
+          style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Current Admins
+        </p>
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          {adminAccounts.length === 0 && (
+            <p className="px-4 py-4 text-muted-foreground text-center" style={{ fontSize: "13px" }}>
+              No admin accounts yet
+            </p>
+          )}
+          {adminAccounts.map((u, i) => (
+            <div key={u.uid}
+              className={`flex items-center gap-3 px-4 py-3 ${i < adminAccounts.length - 1 ? "border-b border-border" : ""}`}>
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-primary" style={{ fontSize: "14px", fontWeight: 700 }}>
+                  {u.email.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-foreground" style={{ fontSize: "13px", fontWeight: 600 }}>{u.email}</p>
+                <p className="text-muted-foreground" style={{ fontSize: "11px" }}>Admin</p>
+              </div>
+              <button
+                onClick={() => handleSetRole(u.account_id!, "anonymous")}
+                disabled={saving === u.account_id}
+                className="px-2 py-1 rounded-lg bg-destructive/10 text-destructive flex items-center gap-1 disabled:opacity-50"
+                style={{ fontSize: "11px", fontWeight: 600 }}>
+                {saving === u.account_id ? <Spinner /> : <Unlink size={11} />} Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Assignable accounts */}
+      {assignableAccounts.length > 0 && (
+        <div>
+          <p className="text-muted-foreground mb-2"
+            style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Assign Admin Role
+          </p>
+          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+            {assignableAccounts.map((u, i, arr) => (
+              <div key={u.uid}
+                className={`flex items-center gap-3 px-4 py-3 ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
+                <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                  <span className="text-muted-foreground" style={{ fontSize: "14px", fontWeight: 700 }}>
+                    {u.email.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground truncate" style={{ fontSize: "13px" }}>{u.email}</p>
+                  <p className="text-muted-foreground" style={{ fontSize: "11px" }}>
+                    Current role: {u.role ?? "none"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleSetRole(u.account_id!, "admin")}
+                  disabled={saving === u.account_id}
+                  className="px-2.5 py-1.5 rounded-lg bg-primary text-white flex items-center gap-1 disabled:opacity-50"
+                  style={{ fontSize: "11px", fontWeight: 600 }}>
+                  {saving === u.account_id ? <Spinner /> : <UserCog size={11} />} Make Admin
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ─── Bikes ────────────────────────────────────────────────────────────────────
 
